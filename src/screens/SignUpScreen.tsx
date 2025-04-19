@@ -29,9 +29,7 @@ export default function SignupScreen() {
       }
 
       console.log('Creating account for:', name, email);
-      await signUp(name, email, password); // ✅ context handles token + nav
-
-      // Optional: Add a success message or animation here
+      await signUp(name, email, password);
 
     } catch (e: any) {
       console.error('Signup error:', e);

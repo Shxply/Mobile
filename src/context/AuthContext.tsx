@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { login as loginApi, signup as signupApi } from '@/services/authService';
-import { setAuthToken } from '@/services/api';
+import axios from 'axios';
+import { login as loginApi, signup as signupApi } from '@/services/AuthService';
 
 export type AuthContextType = {
   token: string | null;
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedToken = await AsyncStorage.getItem('userToken');
       if (storedToken) {
         setToken(storedToken);
-        setAuthToken(storedToken);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       }
       setLoading(false);
     };
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     const { token } = await loginApi(email, password);
     setToken(token);
-    setAuthToken(token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     await AsyncStorage.setItem('userToken', token);
   };
 
@@ -45,17 +45,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     setToken(null);
-    setAuthToken(null);
+    delete axios.defaults.headers.common['Authorization'];
     await AsyncStorage.removeItem('userToken');
   };
 
   const setAuthState = ({ token }: { token: string | null }) => {
     setToken(token);
     if (token) {
-      setAuthToken(token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       AsyncStorage.setItem('userToken', token);
     } else {
-      setAuthToken(null);
+      delete axios.defaults.headers.common['Authorization'];
       AsyncStorage.removeItem('userToken');
     }
   };

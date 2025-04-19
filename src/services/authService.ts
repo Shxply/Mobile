@@ -1,16 +1,15 @@
-import api, { setAuthToken } from './api';
+// services/AuthService.ts
+import axios from 'axios';
+import { API_BASE_URL } from '@/constants/api';
 
 export const login = async (email: string, password: string): Promise<{ token: string }> => {
-  const response = await api.post('/api/auth/login', null, {
-    params: { email, password },
-  });
-  const token = response.data as string;
-  setAuthToken(token);
-  return { token };
+  const response = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password });
+  return { token: response.data as string };
 };
 
 export const signup = async (name: string, email: string, password: string): Promise<void> => {
-  await api.post('/api/auth/register', null, {
-    params: { name, email, password },
-  });
+  await axios.post(`${API_BASE_URL}/api/auth/register`, { name, email, password });
 };
+
+
+
