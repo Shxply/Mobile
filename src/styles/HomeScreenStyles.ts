@@ -82,6 +82,19 @@ const HomeScreenStyles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
+  searchBarWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    elevation: 2,
+  },
+  searchBar: {
+    marginBottom: 0,
+  },
 });
 
 export default HomeScreenStyles;

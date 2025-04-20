@@ -8,6 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { ActivityIndicator, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { useAuth } from './src/context/AuthContext';
+import { Provider as PaperProvider } from 'react-native-paper'; // 👈 Add this
 
 function RootNavigation() {
   const { token, loading } = useAuth();
@@ -37,17 +38,20 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <LocationProvider>
-        <ShoppingListProvider>
-          <NavigationContainer>
-            <RootNavigation />
-          </NavigationContainer>
-        </ShoppingListProvider>
-      </LocationProvider>
-    </AuthProvider>
+    <PaperProvider>
+      <AuthProvider>
+        <LocationProvider>
+          <ShoppingListProvider>
+            <NavigationContainer>
+              <RootNavigation />
+            </NavigationContainer>
+          </ShoppingListProvider>
+        </LocationProvider>
+      </AuthProvider>
+    </PaperProvider>
   );
 }
+
 
 
 
