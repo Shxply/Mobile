@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, TouchableOpacity, Text, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import Markdown from 'react-native-markdown-display';
+import { ScrollView } from 'react-native';
+
 
 import CompareScreenStyles from '../styles/CompareScreenStyles';
 import ProductCard from '../components/ProductCard';
 import { Product } from '@/types/Product';
-import { fetchProductByBarcode } from '@/services/ProductService';
+import { fetchProductByBarcode, compareProductsWithAI } from '@/services/ProductService';
 
 export default function CompareScreen() {
   const [productA, setProductA] = useState<Product | null>(null);
@@ -15,60 +18,107 @@ export default function CompareScreen() {
   const [comparisonResult, setComparisonResult] = useState<string | null>(null);
   const [isComparing, setIsComparing] = useState(false);
 
+  const scanLockRef = useRef(false);
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
-    if (!permission) requestPermission();
-  }, [permission]);
+    if (!permission) {
+      requestPermission();
+    }
+  }, []);
 
   useEffect(() => {
-    const compareProductsWithAI = async (a: Product, b: Product) => {
+    const compareWithAI = async (a: Product, b: Product) => {
       setIsComparing(true);
       setComparisonResult(null);
-      // Simulate delay like an API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const mockOutput = `AI Comparison:\n"${a.name}" is more affordable, but "${b.name}" has higher nutritional value. It depends on your priority.`;
-      setComparisonResult(mockOutput);
-      setIsComparing(false);
+
+      try {
+        const result = await compareProductsWithAI(a, b);
+        if (!result) throw new Error('No AI comparison result returned.');
+        setComparisonResult(result);
+      } catch (err) {
+        console.error('❌ Failed AI comparison:', err);
+        setComparisonResult('⚠️ Failed to retrieve AI comparison.');
+      } finally {
+        setIsComparing(false);
+      }
     };
 
     if (productA && productB) {
-      compareProductsWithAI(productA, productB);
+      compareWithAI(productA, productB);
     } else {
       setComparisonResult(null);
     }
   }, [productA, productB]);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
+    if (scanLockRef.current) {
+      console.log('🚫 Duplicate scan ignored');
+      return;
+    }
+
+    scanLockRef.current = true;
     setScanned(true);
+    console.log('📦 Scanned barcode:', data);
+
     try {
       const product = await fetchProductByBarcode(data);
-      if (!product) throw new Error('Product not found');
-      if (scanningFor === 'A') setProductA(product);
-      if (scanningFor === 'B') setProductB(product);
+      if (!product) {
+        Alert.alert('Product Not Found', 'No product data returned for this barcode.');
+      } else {
+        if (scanningFor === 'A') setProductA(product);
+        if (scanningFor === 'B') setProductB(product);
+      }
     } catch (error) {
-      console.error(error);
+      console.error('❌ Error fetching product:', error);
       Alert.alert('Error', 'Failed to fetch product.');
     } finally {
       setScanningFor(null);
+
+      setTimeout(() => {
+        scanLockRef.current = false;
+        setScanned(false);
+        console.log('🔓 Scan ready again');
+      }, 2000);
     }
   };
 
+  const handleReset = () => {
+    setProductA(null);
+    setProductB(null);
+    setComparisonResult(null);
+    setScanningFor(null);
+    setScanned(false);
+    scanLockRef.current = false;
+  };
+
   const renderCard = (product: Product | null, label: 'A' | 'B') => {
-    if (scanningFor === label) {
+    const isScanningThis = scanningFor === label;
+
+    if (isScanningThis) {
       if (!permission) {
         return (
           <View style={CompareScreenStyles.card}>
-            <Text>Requesting camera permission...</Text>
+            <Text>Checking camera permissions...</Text>
           </View>
         );
       }
 
-      if (!permission.granted) {
+      if (permission.status !== 'granted') {
         return (
           <View style={CompareScreenStyles.card}>
-            <Text style={{ marginBottom: 10 }}>Camera permission is required.</Text>
-            <TouchableOpacity onPress={requestPermission} style={CompareScreenStyles.rescanBtn}>
+            <Text style={{ marginBottom: 10 }}>Camera access is required.</Text>
+            <TouchableOpacity
+              onPress={async () => {
+                const result = await requestPermission();
+                if (result.granted) {
+                  setScanningFor(label);
+                } else {
+                  Alert.alert('Permission Denied', 'Camera access was not granted.');
+                }
+              }}
+              style={CompareScreenStyles.rescanBtn}
+            >
               <Text style={CompareScreenStyles.rescanText}>Grant Permission</Text>
             </TouchableOpacity>
           </View>
@@ -76,21 +126,24 @@ export default function CompareScreen() {
       }
 
       return (
-        <View style={CompareScreenStyles.card}>
+        <View style={CompareScreenStyles.cameraCard}>
           <CameraView
-            style={{ flex: 1, width: '100%' }}
+            style={StyleSheet.absoluteFill}
             facing="back"
             onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
             barcodeScannerSettings={{
-              barcodeTypes: ['ean13', 'upc_a', 'upc_e', 'ean8'],
+              barcodeTypes: ['upc_a', 'upc_e'],
             }}
           />
           {scanned && (
             <TouchableOpacity
-              style={CompareScreenStyles.rescanBtn}
-              onPress={() => setScanned(false)}
+              style={CompareScreenStyles.scanAgainButton}
+              onPress={() => {
+                scanLockRef.current = false;
+                setScanned(false);
+              }}
             >
-              <Text style={CompareScreenStyles.rescanText}>Scan Again</Text>
+              <Text style={CompareScreenStyles.scanAgainText}>Scan Again</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -108,39 +161,50 @@ export default function CompareScreen() {
         }}
         activeOpacity={0.8}
       >
-        <View style={{ alignItems: 'center' }}>
-          <Text style={{ fontSize: 40, marginBottom: 8 }}>📷</Text>
-          <Text style={CompareScreenStyles.scanText}>Tap to scan Product {label}</Text>
+        <View style={CompareScreenStyles.placeholderCard}>
+          <Text style={CompareScreenStyles.scanText}>
+            {label === 'A' ? 'Tap to scan first product' : 'Tap to scan second product'}
+          </Text>
         </View>
       </TouchableOpacity>
     );
   };
 
-  const renderAIComparisonCard = () => {
-    return (
-      <View style={CompareScreenStyles.resultCard}>
-        <Text style={CompareScreenStyles.resultHeader}>AI Comparison</Text>
-        {isComparing ? (
-          <ActivityIndicator size="small" color="#007AFF" />
-        ) : comparisonResult ? (
-          <Text style={CompareScreenStyles.resultText}>{comparisonResult}</Text>
-        ) : (
-          <Text style={[CompareScreenStyles.resultText, { opacity: 0.6 }]}>
-            Scan both products to compare.
-          </Text>
-        )}
-      </View>
-    );
-  };
+  const renderAIComparisonCard = () => (
+    <View style={CompareScreenStyles.resultCard}>
+      <Text style={CompareScreenStyles.resultHeader}>AI Comparison</Text>
+      {isComparing ? (
+        <ActivityIndicator size="small" color="#007AFF" />
+      ) : comparisonResult ? (
+        <Markdown style={{ body: CompareScreenStyles.resultText }}>
+          {comparisonResult}
+        </Markdown>
+      ) : (
+        <Text style={[CompareScreenStyles.resultText, { opacity: 0.6 }]}>
+          Scan both products to compare.
+        </Text>
+      )}
+    </View>
+  );
+  
+
+  const renderResetButton = () => (
+    <TouchableOpacity
+      style={CompareScreenStyles.resetButton}
+      onPress={handleReset}
+      activeOpacity={0.8}
+    >
+      <Text style={CompareScreenStyles.resetButtonText}>Reset</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={CompareScreenStyles.container}>
+    <ScrollView contentContainerStyle={CompareScreenStyles.container}>
       {renderCard(productA, 'A')}
       {renderCard(productB, 'B')}
       {renderAIComparisonCard()}
-    </View>
-  );
+      {(productA || productB || comparisonResult) && renderResetButton()}
+    </ScrollView>
+  );  
 }
-
-
 
