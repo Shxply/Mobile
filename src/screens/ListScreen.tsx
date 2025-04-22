@@ -8,17 +8,21 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-
 import ListScreenStyles from '../styles/ListScreenStyles';
+
 import {
   createShoppingList,
   fetchUserShoppingLists,
   deleteShoppingList,
+  fetchShoppingListItems,
 } from '@/services/ListService';
+
 import { ShoppingList } from '@/types/ShoppingList';
+import { ShoppingListItem } from '@/types/ShoppingListItem';
 import { useAuth } from '@/context/AuthContext';
 import { getUserIdFromToken } from '@/utils/DecodeToken';
 
@@ -33,6 +37,7 @@ export default function ListScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [listItems, setListItems] = useState<ShoppingListItem[]>([]);
 
   useEffect(() => {
     const loadUserDataAndLists = async () => {
@@ -105,9 +110,17 @@ export default function ListScreen() {
     }
   };
 
-  const handleListPress = (list: ShoppingList) => {
+  const handleListPress = async (list: ShoppingList) => {
     setSelectedList(list);
     setBottomSheetVisible(true);
+
+    try {
+      const items = await fetchShoppingListItems(list.shoppingListId);
+      setListItems(items ?? []);
+    } catch (error) {
+      console.error('Error fetching shopping list items:', error);
+      setListItems([]);
+    }
   };
 
   const renderItem = ({ item }: { item: ShoppingList }) => (
@@ -193,7 +206,39 @@ export default function ListScreen() {
             <Text style={ListScreenStyles.modalTitle}>
               {selectedList?.name}
             </Text>
-            <Text>More actions or details can go here...</Text>
+
+            {listItems.length === 0 ? (
+              <Text style={{ marginTop: 8 }}>No items in this list.</Text>
+            ) : (
+              <FlatList
+                data={listItems}
+                keyExtractor={(item) => item.shoppingListItemId}
+                renderItem={({ item }) => (
+                  <View style={ListScreenStyles.listItemRow}>
+                    <View style={ListScreenStyles.listItemContent}>
+                      {item.product?.imageUrl && (
+                        <View style={ListScreenStyles.listItemImageWrapper}>
+                          <Image
+                            source={{ uri: item.product.imageUrl }}
+                            style={ListScreenStyles.listItemImage}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      )}
+                      <View style={ListScreenStyles.listItemDetails}>
+                        <Text style={ListScreenStyles.listItemName}>
+                          {item.product?.name ?? 'Unknown Product'}
+                        </Text>
+                        <Text style={ListScreenStyles.listItemQuantity}>
+                          Qty: {item.quantity}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+                contentContainerStyle={{ paddingVertical: 8 }}
+              />
+            )}
 
             <TouchableOpacity
               style={[ListScreenStyles.modalButton, { marginTop: 16 }]}
@@ -207,4 +252,5 @@ export default function ListScreen() {
     </View>
   );
 }
+
 

@@ -17,8 +17,14 @@ import {
 import HomeScreenStyles from '../styles/HomeScreenStyles';
 import { Product } from '@/types/Product';
 import { ShoppingList } from '@/types/ShoppingList';
-import { fetchAllProducts } from '@/services/ProductService';
-import { fetchUserShoppingLists } from '@/services/ListService';
+import {
+  fetchAllProducts,
+  addProductToShoppingList,
+} from '@/services/HomeService';
+import {
+  fetchUserShoppingLists,
+  fetchShoppingListItems,
+} from '@/services/ListService';
 import { getUserIdFromToken } from '@/utils/DecodeToken';
 import { useAuth } from '@/context/AuthContext';
 
@@ -64,7 +70,8 @@ export default function HomeScreen() {
             }
           >
             {lists.map((list) => {
-              const isSelected = selectedList?.shoppingListId === list.shoppingListId;
+              const isSelected =
+                selectedList?.shoppingListId === list.shoppingListId;
               return (
                 <Menu.Item
                   key={list.shoppingListId}
@@ -72,9 +79,7 @@ export default function HomeScreen() {
                     setSelectedList(list);
                     closeMenu();
                   }}
-                  title={
-                    isSelected ? `✓ ${list.name}` : list.name
-                  }
+                  title={isSelected ? `✓ ${list.name}` : list.name}
                   titleStyle={{
                     fontWeight: isSelected ? 'bold' : 'normal',
                     color: isSelected ? '#007AFF' : '#000',
@@ -88,6 +93,7 @@ export default function HomeScreen() {
     });
   }, [menuVisible, lists, selectedList]);
 
+  // Load products and user shopping lists
   useEffect(() => {
     const loadListsAndProducts = async () => {
       const userId = getUserIdFromToken(token);
@@ -100,21 +106,43 @@ export default function HomeScreen() {
 
       if (fetchedLists) {
         setLists(fetchedLists);
-        if (
-          !selectedList ||
-          !fetchedLists.find((l) => l.shoppingListId === selectedList.shoppingListId)
-        ) {
-          setSelectedList(fetchedLists[0]);
-        }
+        const initialList =
+          selectedList && fetchedLists.find((l) => l.shoppingListId === selectedList.shoppingListId)
+            ? selectedList
+            : fetchedLists[0];
+        setSelectedList(initialList);
       }
 
-      if (fetchedProducts) setProducts(fetchedProducts);
+      if (fetchedProducts) {
+        setProducts(fetchedProducts);
+      }
     };
 
     if (isFocused) {
       loadListsAndProducts();
     }
   }, [token, isFocused]);
+
+  // Load product quantities for the selected list
+  useEffect(() => {
+    const loadQuantities = async () => {
+      if (!selectedList) return;
+
+      const items = await fetchShoppingListItems(selectedList.shoppingListId);
+      if (!items) return;
+
+      const updatedQuantities: Record<string, number> = {};
+      for (const item of items) {
+        if (item.productId) {
+          updatedQuantities[item.productId] = item.quantity;
+        }
+      }
+
+      setQuantities(updatedQuantities);
+    };
+
+    loadQuantities();
+  }, [selectedList]);
 
   const groupIntoRows = (items: Product[], columns = 2) => {
     const rows = [];
@@ -124,32 +152,52 @@ export default function HomeScreen() {
     return rows;
   };
 
-  const increaseQuantity = (id: string) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: (prev[id] || 0) + 1,
-    }));
-  };
+  const increaseQuantity = async (productId: string) => {
+    if (!selectedList) return;
 
-  const decreaseQuantity = (id: string) => {
-    setQuantities((prev) => {
-      const current = prev[id] || 0;
-      if (current <= 1) {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      }
-      return {
+    const success = await addProductToShoppingList(
+      selectedList.shoppingListId,
+      productId,
+      1
+    );
+
+    if (success) {
+      setQuantities((prev) => ({
         ...prev,
-        [id]: current - 1,
-      };
-    });
+        [productId]: (prev[productId] || 0) + 1,
+      }));
+    }
   };
 
-  const filteredProducts = products.filter(
-    (item) =>
-      item.name &&
-      item.name.toLowerCase().includes(search.toLowerCase())
+  const decreaseQuantity = async (productId: string) => {
+    if (!selectedList) return;
+
+    const current = quantities[productId] || 0;
+
+    const success = await addProductToShoppingList(
+      selectedList.shoppingListId,
+      productId,
+      -1
+    );
+
+    if (success) {
+      if (current <= 1) {
+        setQuantities((prev) => {
+          const updated = { ...prev };
+          delete updated[productId];
+          return updated;
+        });
+      } else {
+        setQuantities((prev) => ({
+          ...prev,
+          [productId]: current - 1,
+        }));
+      }
+    }
+  };
+
+  const filteredProducts = products.filter((item) =>
+    item.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const groupedProducts = groupIntoRows(filteredProducts);
@@ -236,3 +284,5 @@ export default function HomeScreen() {
     </PaperMenuProvider>
   );
 }
+
+

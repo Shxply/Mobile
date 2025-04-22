@@ -69,6 +69,37 @@ export const compareProductsWithAI = async (productA: Product, productB: Product
   }
 };
 
+// ✅ NEW: Add product to shopping list
+export const addProductToShoppingList = async (shoppingListId: string, productId: string, quantity: number, preferredStoreId?: string): Promise<boolean> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.warn('⚠️ No token found for adding shopping list item');
+      return false;
+    }
+
+    await axios.post(
+      `${API_BASE_URL}/api/shopping-lists/${shoppingListId}/items`,
+      {
+        productId,
+        quantity,
+        preferredStoreId: preferredStoreId || null,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to add product to shopping list:', error);
+    return false;
+  }
+};
+
 
 
 

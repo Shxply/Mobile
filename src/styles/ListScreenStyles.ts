@@ -75,6 +75,49 @@ const ListScreenStyles = StyleSheet.create({
     padding: 20,
     minHeight: 200,
   },
+  listItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  
+  listItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  
+  listItemImageWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    overflow: 'hidden',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  listItemImage: {
+    width: 36,
+    height: 36,
+  },
+  
+  listItemDetails: {
+    flexShrink: 1,
+  },
+  
+  listItemName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222',
+  },
+  
+  listItemQuantity: {
+    fontSize: 13,
+    color: '#666',
+  },
+  
 });
 
 export default ListScreenStyles;

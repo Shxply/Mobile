@@ -8,7 +8,7 @@ import { ScrollView } from 'react-native';
 import CompareScreenStyles from '../styles/CompareScreenStyles';
 import ProductCard from '../components/ProductCard';
 import { Product } from '@/types/Product';
-import { fetchProductByBarcode, compareProductsWithAI } from '@/services/ProductService';
+import { fetchProductByBarcode, compareProductsWithAI } from '@/services/HomeService';
 
 export default function CompareScreen() {
   const [productA, setProductA] = useState<Product | null>(null);
