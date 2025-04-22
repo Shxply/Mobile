@@ -26,6 +26,27 @@ export const fetchProductByBarcode = async (barcode: string): Promise<Product | 
   }
 };
 
+export const fetchAllProducts = async (): Promise<Product[] | null> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.warn('⚠️ No token found in AsyncStorage under "userToken".');
+      return null;
+    }
+
+    const response = await axios.get(`${API_BASE_URL}/api/products`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return response.data as Product[];
+  } catch (error) {
+    console.error('❌ Failed to fetch all products:', error);
+    return null;
+  }
+};
+
 export const compareProductsWithAI = async (productA: Product, productB: Product): Promise<string | null> => {
   try {
     const token = await AsyncStorage.getItem('userToken');
@@ -47,6 +68,7 @@ export const compareProductsWithAI = async (productA: Product, productB: Product
     return null;
   }
 };
+
 
 
 

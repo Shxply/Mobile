@@ -1,14 +1,14 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { LocationProvider } from './src/context/LocationContext';
 import { ShoppingListProvider } from './src/context/ShoppingListContext';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ActivityIndicator, View } from 'react-native';
 import { useFonts } from 'expo-font';
-import { useAuth } from './src/context/AuthContext';
-import { Provider as PaperProvider } from 'react-native-paper'; // 👈 Add this
+import { Provider as PaperProvider } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // ✅ Required for gesture support
 
 function RootNavigation() {
   const { token, loading } = useAuth();
@@ -38,19 +38,22 @@ export default function App() {
   }
 
   return (
-    <PaperProvider>
-      <AuthProvider>
-        <LocationProvider>
-          <ShoppingListProvider>
-            <NavigationContainer>
-              <RootNavigation />
-            </NavigationContainer>
-          </ShoppingListProvider>
-        </LocationProvider>
-      </AuthProvider>
-    </PaperProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <ShoppingListProvider>
+              <NavigationContainer>
+                <RootNavigation />
+              </NavigationContainer>
+            </ShoppingListProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 }
+
 
 
 

@@ -24,35 +24,41 @@ const HomeScreenStyles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 12,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 4,
     position: 'relative',
   },
   productImage: {
-    width: 80,
-    height: 80,
+    width: 90,
+    height: 110,
     marginBottom: 12,
     borderRadius: 8,
     resizeMode: 'contain',
   },
   productName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  priceText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#007AFF',
+    marginBottom: 6,
   },
   tileAddButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 10,
+    right: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#28a745',
     alignItems: 'center',
     justifyContent: 'center',
@@ -91,6 +97,8 @@ const HomeScreenStyles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     padding: 12,
     elevation: 2,
+    marginLeft: 12,
+    marginRight: 12,
   },
   searchBar: {
     marginBottom: 0,
@@ -98,6 +106,7 @@ const HomeScreenStyles = StyleSheet.create({
 });
 
 export default HomeScreenStyles;
+
 
 
 
