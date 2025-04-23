@@ -17,7 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.shoply",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "We need your location to help you find nearby stores."
       }
     },
     "android": {
