@@ -18,7 +18,8 @@ import {
   createShoppingList,
   fetchUserShoppingLists,
   deleteShoppingList,
-  fetchShoppingListItems,
+  fetchOptimizedShoppingListGroupedByStore,
+  fetchStoreById,
 } from '@/services/ListService';
 
 import { ShoppingList } from '@/types/ShoppingList';
@@ -37,7 +38,8 @@ export default function ListScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(null);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [listItems, setListItems] = useState<ShoppingListItem[]>([]);
+  const [groupedListItems, setGroupedListItems] = useState<Record<string, ShoppingListItem[]>>({});
+  const [storeNames, setStoreNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadUserDataAndLists = async () => {
@@ -115,11 +117,27 @@ export default function ListScreen() {
     setBottomSheetVisible(true);
 
     try {
-      const items = await fetchShoppingListItems(list.shoppingListId);
-      setListItems(items ?? []);
+      const groupedItems = await fetchOptimizedShoppingListGroupedByStore(list.shoppingListId);
+      setGroupedListItems(groupedItems ?? {});
+
+      const storeIds = Object.keys(groupedItems ?? {});
+      const nameMap: Record<string, string> = {};
+
+      await Promise.all(
+        storeIds.map(async (storeId) => {
+          try {
+            const store = await fetchStoreById(storeId);
+            if (store?.name) nameMap[storeId] = store.name;
+          } catch (err) {
+            console.warn(`⚠️ Could not fetch store for ${storeId}`);
+          }
+        })
+      );
+
+      setStoreNames(nameMap);
     } catch (error) {
-      console.error('Error fetching shopping list items:', error);
-      setListItems([]);
+      console.error('Error fetching optimized shopping list items:', error);
+      setGroupedListItems({});
     }
   };
 
@@ -154,6 +172,18 @@ export default function ListScreen() {
       </TouchableOpacity>
     </View>
   );
+
+  const calculateTotalPrice = () => {
+    let total = 0;
+    Object.values(groupedListItems).forEach((items) => {
+      items.forEach((item) => {
+        if (item.product?.price) {
+          total += item.product.price * item.quantity;
+        }
+      });
+    });
+    return total.toFixed(2);
+  };
 
   return (
     <View style={ListScreenStyles.container}>
@@ -203,42 +233,52 @@ export default function ListScreen() {
       >
         <View style={ListScreenStyles.bottomSheetBackdrop}>
           <View style={ListScreenStyles.bottomSheet}>
-            <Text style={ListScreenStyles.modalTitle}>
-              {selectedList?.name}
-            </Text>
+            <Text style={ListScreenStyles.modalTitle}>{selectedList?.name}</Text>
 
-            {listItems.length === 0 ? (
+            {Object.keys(groupedListItems).length === 0 ? (
               <Text style={{ marginTop: 8 }}>No items in this list.</Text>
             ) : (
               <FlatList
-                data={listItems}
-                keyExtractor={(item) => item.shoppingListItemId}
-                renderItem={({ item }) => (
-                  <View style={ListScreenStyles.listItemRow}>
-                    <View style={ListScreenStyles.listItemContent}>
-                      {item.product?.imageUrl && (
-                        <View style={ListScreenStyles.listItemImageWrapper}>
-                          <Image
-                            source={{ uri: item.product.imageUrl }}
-                            style={ListScreenStyles.listItemImage}
-                            resizeMode="contain"
-                          />
+                data={Object.entries(groupedListItems)}
+                keyExtractor={([storeId]) => storeId}
+                renderItem={({ item: [storeId, items] }) => (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4 }}>
+                      {storeNames[storeId] ?? `Store ID: ${storeId}`}
+                    </Text>
+                    {items.map((item) => (
+                      <View key={item.shoppingListItemId} style={ListScreenStyles.listItemRow}>
+                        <View style={ListScreenStyles.listItemContent}>
+                          {item.product?.imageUrl && (
+                            <View style={ListScreenStyles.listItemImageWrapper}>
+                              <Image
+                                source={{ uri: item.product.imageUrl }}
+                                style={ListScreenStyles.listItemImage}
+                                resizeMode="contain"
+                              />
+                            </View>
+                          )}
+                          <View style={ListScreenStyles.listItemDetails}>
+                            <Text style={ListScreenStyles.listItemName}>
+                              {item.product?.name ?? 'Unknown Product'}
+                            </Text>
+                            <Text style={ListScreenStyles.listItemQuantity}>Qty: {item.quantity}</Text>
+                            {item.product?.price && (
+                              <Text style={ListScreenStyles.listItemPrice}>Price: ${item.product.price.toFixed(2)}</Text>
+                            )}
+                          </View>
                         </View>
-                      )}
-                      <View style={ListScreenStyles.listItemDetails}>
-                        <Text style={ListScreenStyles.listItemName}>
-                          {item.product?.name ?? 'Unknown Product'}
-                        </Text>
-                        <Text style={ListScreenStyles.listItemQuantity}>
-                          Qty: {item.quantity}
-                        </Text>
                       </View>
-                    </View>
+                    ))}
                   </View>
                 )}
                 contentContainerStyle={{ paddingVertical: 8 }}
               />
             )}
+
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginTop: 16 }}>
+              Total Price: ${calculateTotalPrice()}
+            </Text>
 
             <TouchableOpacity
               style={[ListScreenStyles.modalButton, { marginTop: 16 }]}
@@ -252,5 +292,6 @@ export default function ListScreen() {
     </View>
   );
 }
+
 
 

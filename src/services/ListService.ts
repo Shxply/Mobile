@@ -126,6 +126,50 @@ export const fetchShoppingListItems = async (
   }
 };
 
+export const fetchOptimizedShoppingListGroupedByStore = async (
+  shoppingListId: string
+): Promise<Record<string, ShoppingListItem[]> | null> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.warn('⚠️ No token found in AsyncStorage under "userToken".');
+      return null;
+    }
+
+    const response = await axios.get<Record<string, ShoppingListItem[]>>(
+      `${API_BASE_URL}/api/shopping-lists/${shoppingListId}/optimized-items`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to fetch optimized shopping list grouped by store:', error);
+    return null;
+  }
+};
+
+export const fetchStoreById = async (storeId: string): Promise<{ name: string } | null> => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.warn('⚠️ No token found in AsyncStorage under "userToken".');
+      return null;
+    }
+
+    const response = await axios.get<{ name: string }>(
+      `${API_BASE_URL}/api/stores/${storeId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Failed to fetch store by ID: ${storeId}`, error);
+    return null;
+  }
+};
 
 
-  

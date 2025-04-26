@@ -132,8 +132,8 @@ export default function CompareScreen() {
             facing="back"
             onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
             barcodeScannerSettings={{
-              barcodeTypes: ['upc_a', 'upc_e'],
-            }}
+              barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr', 'itf14', 'pdf417'],
+            }}            
           />
           {scanned && (
             <TouchableOpacity

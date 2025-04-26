@@ -15,5 +15,7 @@ export interface Product {
   imageIngredientsUrl?: string;
   imageNutritionUrl?: string;
   ingredientTags?: string[];
+  price?: number;
 }
+
   

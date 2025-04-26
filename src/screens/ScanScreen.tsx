@@ -116,7 +116,19 @@ export default function ScanScreen() {
           style={ScanScreenStyles.camera}
           facing="back"
           onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['upc_a', 'upc_e'] }}
+          barcodeScannerSettings={{
+            barcodeTypes: [
+              'ean13',
+              'ean8',
+              'upc_a',
+              'upc_e',
+              'code128',
+              'code39',
+              'qr',
+              'itf14',
+              'pdf417'
+            ]
+          }}
         />
       ) : (
         <View style={ScanScreenStyles.formContainer}>
@@ -139,16 +151,21 @@ export default function ScanScreen() {
               </TouchableOpacity>
             }
           >
-            {nearbyStores.map((store) => (
-              <Menu.Item
-                key={store.storeId}
-                onPress={() => {
-                  setStoreId(store.storeId);
-                  setMenuVisible(false);
-                }}
-                title={store.name}
-              />
-            ))}
+            {nearbyStores.map((store) => {
+              // Extract city from vicinity
+              const city = store.vicinity?.split(',').slice(-1)[0].trim() || 'Unknown City';
+              
+              return (
+                <Menu.Item
+                  key={store.storeId}
+                  onPress={() => {
+                    setStoreId(store.storeId);
+                    setMenuVisible(false);
+                  }}
+                  title={`${store.name} (${city})${store.rating ? ` ⭐ ${store.rating}` : ''}`}
+                />
+              );
+            })}
           </Menu>
 
           <TextInput

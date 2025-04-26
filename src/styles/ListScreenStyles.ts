@@ -117,7 +117,11 @@ const ListScreenStyles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
   },
-  
+  listItemPrice: {
+    fontSize: 14,
+    color: '#444',
+    marginTop: 4,
+  },
 });
 
 export default ListScreenStyles;
